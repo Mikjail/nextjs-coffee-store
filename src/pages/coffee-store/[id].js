@@ -13,11 +13,12 @@ import {getCoffeeShops} from "../../lib/coffee-store";
 export async function getStaticProps(staticProps) {
   const coffeeStores = await getCoffeeShops();
   const {params} = staticProps;
+  const findCoffeeShopById = coffeeStores.find((coffeeStore) => {
+    return coffeeStore.id.toString() === params.id; //dynamic id
+  });
   return {
     props: {
-      coffeeStore: coffeeStores.find((coffeeStore) => {
-        return coffeeStore.id.toString() === params.id; //dynamic id
-      }),
+      coffeeStore: findCoffeeShopById || {}
     },
   };
 }
