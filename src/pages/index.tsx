@@ -4,7 +4,9 @@ import styles from '@/styles/Home.module.css'
 import Banner from "@/components/banner";
 import Card from "@/components/card";
 import {getCoffeeShops} from "@/lib/coffee-store";
-
+import useTrackLocation from '@/hooks/use-track-location';
+import {useContext, useEffect, useState} from "react";
+import {ACTION_TYPES, StoreContext} from "@/pages/_app";
 
 export async function getStaticProps(context) {
   const coffeeStores = await getCoffeeShops();
@@ -16,9 +18,29 @@ export async function getStaticProps(context) {
 }
 
 export default function Home({coffeeStores}) {
+  const {dispatch, state} = useContext(StoreContext);
+  const {handleTrackLocation, locationErrorMsg, isFindingLocation} = useTrackLocation();
+  const [coffeeStoreError, setCoffeeStoreError] = useState('');
+  const {coffeeShops, latLong} = state;
+  useEffect(() => {
+
+    async function setCoffeShopByLocation() {
+      if (latLong) {
+        try {
+          const coffeeShops = await getCoffeeShops(latLong);
+          dispatch({type: ACTION_TYPES.SET_COFFEE_SHOPS, payload: {coffeeShops}});
+        } catch (error) {
+          setCoffeeStoreError(error.message);
+        }
+      }
+    }
+
+    setCoffeShopByLocation();
+  }, [latLong])
 
   const handleBanerBtnClick = () => {
     console.log('Btn Clicked');
+    handleTrackLocation();
   }
   return (
     <>
@@ -29,26 +51,45 @@ export default function Home({coffeeStores}) {
         <link rel="icon" href="/favicon.ico"/>
       </Head>
       <main className={styles.main}>
-        <Banner btnText="View stores nearby"
+        <Banner btnText={isFindingLocation ? "loading..." : "View stores nearby"}
                 handleOnClick={handleBanerBtnClick}/>
+        {locationErrorMsg ?? <p>Something went wrong: {locationErrorMsg}</p>}
+        {coffeeStoreError ?? <p>Something went wrong: {coffeeStoreError}</p>}
         <div className={styles.heroImage}>
           <Image alt="coffee image" src="/static/hero-image.png" width={700} height={400}/>
         </div>
-        {coffeeStores.length > 0 && (<>
-          <h2 className={styles.heading2}>Toronto Stores</h2>
-          <div className={styles.cardLayout}>
-            {coffeeStores.map(coffeeStore => {
-              return (<Card
-                key={coffeeStore.id}
-                name={coffeeStore.name}
-                imgUrl={coffeeStore.imgUrl || 'https://images.unsplash.com/photo-1498804103079-a6351b050096?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2468&q=80'}
-                href={`/coffee-store/${coffeeStore.id}`}
-                className={styles.card}
-              />)
-            })}
-          </div>
-        </>)}
-
+        {coffeeShops.length > 0 && (
+          <div className={styles.sectionWrapper}>
+            <h2 className={styles.heading2}>Stores near me</h2>
+            <div className={styles.cardLayout}>
+              {coffeeShops.map(coffeeStore => {
+                return (<Card
+                  key={coffeeStore.id}
+                  name={coffeeStore.name}
+                  imgUrl={coffeeStore.imgUrl || 'https://images.unsplash.com/photo-1498804103079-a6351b050096?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2468&q=80'}
+                  href={`/coffee-store/${coffeeStore.id}`}
+                  className={styles.card}
+                />)
+              })}
+            </div>
+          </div>)
+        }
+        {coffeeStores.length > 0 && (
+          <div className={styles.sectionWrapper}>
+            <h2 className={styles.heading2}>Toronto Stores</h2>
+            <div className={styles.cardLayout}>
+              {coffeeStores.map(coffeeStore => {
+                return (<Card
+                  key={coffeeStore.id}
+                  name={coffeeStore.name}
+                  imgUrl={coffeeStore.imgUrl || 'https://images.unsplash.com/photo-1498804103079-a6351b050096?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=2468&q=80'}
+                  href={`/coffee-store/${coffeeStore.id}`}
+                  className={styles.card}
+                />)
+              })}
+            </div>
+          </div>)
+        }
       </main>
     </>
   )
