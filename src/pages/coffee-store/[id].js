@@ -2,13 +2,13 @@ import {useRouter} from "next/router";
 import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
-
 import cls from "classnames";
-
-import coffeeStoresData from "../../data/coffee-stores.json";
-
 import styles from "../../styles/coffee-store.module.css";
 import {getCoffeeShops} from "../../lib/coffee-store";
+import {useContext, useEffect, useState} from "react";
+
+import {isEmpty} from "../../utils";
+import {StoreContext} from "../../store/store.context";
 
 export async function getStaticProps(staticProps) {
   const coffeeStores = await getCoffeeShops();
@@ -38,14 +38,28 @@ export async function getStaticPaths() {
   };
 }
 
-const CoffeeStore = (props) => {
+const CoffeeStore = (initialProps) => {
   const router = useRouter();
+  const id = router.query.id;
+  const [coffeeShop, setCoffeeShop] = useState(initialProps.coffeeStore);
+  const {state} = useContext(StoreContext);
+
+  useEffect(() => {
+    console.log(state);
+    if (isEmpty(coffeeShop) && state.coffeeShops.length > 0) {
+      const coffeeShopFound = state.coffeeShops.find((coffeeShop) => {
+        return coffeeShop.id.toString() === id;
+      });
+      setCoffeeShop(coffeeShopFound);
+    }
+  }, [id, state, coffeeShop]);
+
+
   if (router.isFallback) {
     return <div>Loading...</div>;
   }
 
-  console.log(props);
-  const {name, address, neighborhood, imgUrl} = props.coffeeStore;
+  const {name, address, neighborhood, imgUrl} = coffeeShop;
 
   const handleUpvoteButton = () => {
   };
@@ -70,25 +84,25 @@ const CoffeeStore = (props) => {
             width={600}
             height={360}
             className={styles.storeImg}
-            alt={name}
+            alt={name || 'main image'}
           />
         </div>
 
         <div className={cls("glass", styles.col2)}>
           {address && (
             <div className={styles.iconWrapper}>
-              <Image src="/static/icons/places.svg" width="24" height="24"/>
+              <Image src="/static/icons/places.svg" width="24" height="24" alt='places icon'/>
               <p className={styles.text}>{address}</p>
             </div>
           )}
           {neighborhood && (
             <div className={styles.iconWrapper}>
-              <Image src="/static/icons/nearMe.svg" width="24" height="24"/>
+              <Image src="/static/icons/nearMe.svg" width="24" height="24" alt='near me icon'/>
               <p className={styles.text}>{neighborhood}</p>
             </div>
           )}
           <div className={styles.iconWrapper}>
-            <Image src="/static/icons/star.svg" width="24" height="24"/>
+            <Image src="/static/icons/star.svg" width="24" height="24" alt='star icon'/>
             <p className={styles.text}>1</p>
           </div>
 
